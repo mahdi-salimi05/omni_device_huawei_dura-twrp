@@ -1,0 +1,278 @@
+import microtrust.rc
+
+on early-init
+    # Apply strict SELinux checking of PROT_EXEC on mmap/mprotect calls.
+    write /sys/fs/selinux/checkreqprot 0
+
+    # Set the security context for the init process.
+    # This should occur before anything else (e.g. ueventd) is started.
+    setcon u:r:init:s0
+
+    start ueventd
+    start healthd
+
+on init
+	export LD_LIBRARY_PATH /system/vendor/lib64:/system/lib64:/system/vendor/lib:/system/lib
+	mkdir /cust
+	mkdir /log
+	mkdir /persist 0771 system system
+	mkdir /firmware 0771 system system
+	mkdir /newsys
+
+on load_system_props_action
+	load_system_props
+
+on late-init
+	trigger load_system_props_action
+
+on early-fs
+	wait /dev/block/platform/bootdevice/by-name/oeminfo
+	start oeminfo_nvm
+
+on fs
+    mount ext4 /dev/block/platform/bootdevice/by-name/log /log wait rw nosuid nodev context=u:object_r:log_data_file:s0
+    restorecon /log
+    chmod 775 /log
+    chown root system /log
+    mkdir /log/recovery
+
+	start logd
+	start fuelgauged
+	#enable adb begin
+	mkdir /dev/usb-ffs 0770 shell shell
+	mkdir /dev/usb-ffs/adb 0770 shell shell
+	mount functionfs adb /dev/usb-ffs/adb uid=2000,gid=2000
+	mkdir /dev/usb-ffs/hdb 0770 shell shell
+	mount functionfs_hdb hdb /dev/usb-ffs/hdb uid=2000,gid=2000
+	write /sys/class/android_usb/android0/f_ffs/aliases adb
+	#enable adb end
+
+on post-fs-data
+    setprop vold.post_fs_data_done 1
+
+    #DTS2017111410281 wangdong/wwx446400 20171121 begin
+    mkdir /data/misc/wifi 0770 wifi wifi
+    mkdir /data/misc/wifi/sockets 0770 wifi wifi
+    mkdir /data/misc/wpa_supplicant 0770 wifi wifi
+    mkdir /data/misc/dhcp-6.8.2 0770 dhcp wifi
+    #DTS2017111410281 wangdong/wwx446400 20171121 end
+    write sys/module/lowmemorykiller/parameters/minfree 18432,23040,27648,32256,55296,80640
+    write sys/module/lowmemorykiller/parameters/adj 0,100,200,300,900,906
+on cust_parse_action
+	cust_parse
+
+on property:androidboot.start_services=true
+	wait /dev/block/platform/bootdevice/by-name/system
+	# mount ext4 /dev/block/platform/bootdevice/by-name/system /newsys wait ro
+	mount ext4 /dev/block/platform/bootdevice/by-name/system /system -o ro
+	mount ext4 /dev/block/platform/bootdevice/by-name/vendor /vendor -o ro
+	mount ext4 /dev/block/platform/bootdevice/by-name/cust /cust -o ro
+	mount ext4 /dev/block/platform/bootdevice/by-name/persist /persist -o rw
+	#mount ext4 /dev/block/platform/bootdevice/by-name/userdata /data -o rw
+	mount f2fs /dev/block/platform/bootdevice/by-name/userdata /data -o rw
+	mount ext4 /dev/block/platform/bootdevice/by-name/cache /cache -o rw
+	#wait /dev/block/platform/bootdevice/by-name/modem
+	#mount vfat /dev/block/platform/bootdevice/by-name/modem /firmware ro context=u:object_r:firmware_file:s0,shortname=lower,uid=1000,gid=1000,dmask=227,fmask=337
+	mount debugfs debugfs /sys/kernel/debug
+	umount /sys/kernel/debug
+	setprop recovery.load_finish true
+	setprop recovery.start_svice true
+        start teei_daemon
+        start keymaster-3-0
+
+on property:recovery.start_all_srv=true
+    trigger cust_parse_action
+    trigger load_system_props_action
+
+service oeminfo_nvm /vendor/bin/oeminfo_nvm_server
+	class core
+	critical
+	ioprio rt 4
+	seclabel u:r:oeminfo_nvm:s0
+
+service keymaster-3-0 /vendor/bin/hw/android.hardware.keymaster@3.0-service
+        class early_hal
+        user system
+        group system drmrpc
+
+# chargelogcat is triggered by projectmenu or setprop
+service chargelogcat /system/vendor/bin/chargelogcat -r 2048 -n 2 -z 2 -t 5 -p /log/charge-log/
+    disabled
+    seclabel u:r:chargelogcat:s0
+
+service kmsglogcat /sbin/kmsgcat -r 4096 -z 2 -n 2 -f /log/kmsg/kmsg_log
+    disabled
+    user root
+    seclabel u:r:kmsgcat:s0
+
+on property:recovery.start_svice=true
+	start wcnss-service
+
+service app_recovery /system/bin/logcat -v threadtime -r 4096 -z 2 -n 2 -f /log/applogcat-log/applogcat-log
+    user root
+    disabled
+    seclabel u:r:hwlogcat:s0
+
+service logctl_service /sbin/logctl_service -m 2
+    user root
+    disabled
+    oneshot
+    seclabel u:r:hwlogcat:s0
+
+service logcat_service /sbin/logctl_service -m 2 -t 1
+    user root
+    disabled
+    oneshot
+    seclabel u:r:hwlogcat:s0
+
+service fac_log_service /vendor/bin/factory_log_service -m 2
+    user root
+    disabled
+    oneshot
+    seclabel u:r:hwlogcat:s0
+
+on property:recovery.start_all_srv=true
+    start logctl_service
+    start logcat_service
+
+service logctl_srv_updt /sbin/logctl_service -m 3
+    user root
+    oneshot
+    disabled
+    seclabel u:r:hwlogcat:s0
+
+on property:recovery.start_all_srv=false
+    start logctl_srv_updt
+
+service wcnss-service /system/bin/wcnss_service
+    seclabel u:r:wcnss_service:s0
+    disabled
+    oneshot
+
+on property:erecovery.run.wcnss=start
+    start wcnss-service
+
+on property:androidboot.start_services=true
+    sys_wp_init_action
+
+on property:vold.decrypt=trigger_shutdown_framework
+    class_reset server
+
+on property:vold.decrypt=trigger_load_persist_props
+    load_persist_props
+
+on property:vold.decrypt=trigger_post_fs_data
+    trigger post-fs-data
+
+#DTS2017111410281 wangdong/wwx446400 20171121 begin
+on boot
+    insmod /vendor/lib/modules/wmt_drv.ko
+
+on post-fs
+    start hwservicemanager
+
+on property:service.wcn.driver.ready=yes
+    insmod /vendor/lib/modules/wmt_chrdev_wifi.ko
+    setprop wmt_chrdev_wifi.ko 1
+
+on property:wmt_chrdev_wifi.ko=1 && property:ro.wlan.gen=gen2
+    insmod /vendor/lib/modules/wlan_drv_gen2.ko
+    setprop wlan_drv.ko 1
+
+ service hwservicemanager /system/bin/hwservicemanager
+     user system
+     disabled
+     group system readproc
+     onrestart setprop hwservicemanager.ready false
+     seclabel u:r:hwservicemanager:s0
+#DTS2017111410281 wangdong/wwx446400 20171121 end
+
+on property:ro.boot.cbt_mode=yes
+    start kmsglogcat
+
+on property:ro.runmode=normal
+    write /sys/class/hw_power/charger/charge_data/iin_thermal 900
+
+service logd /system/bin/logd
+   socket logd stream 0666 logd logd
+   socket logdr seqpacket 0666 logd logd
+   socket logdw dgram 0222 logd logd
+   seclabel u:r:logd:s0
+
+# Restart adbd so it can run as root
+on property:service.adb.root=1
+    write /sys/class/android_usb/android0/enable 0
+    restart adbd
+    write /sys/class/android_usb/android0/enable 1
+
+#service hdbd /sbin/hdbd
+service hdbd /sbin/hdbd --root_seclabel=u:r:su:s0
+    class core
+    socket hdbd stream 660 system system
+    disabled
+    seclabel u:r:adbd:s0
+
+# Always start adbd on userdebug and eng builds
+on property:ro.debuggable=1
+    write /sys/class/android_usb/android0/enable 0
+    write /sys/class/android_usb/android0/idVendor 12d1
+    write /sys/class/android_usb/android0/idProduct 107f
+#DTS2017052506583 leipengcheng lwx446408    20170602 begin
+    write /sys/class/android_usb/android0/iSerial ${ro.serialno}
+#DTS2017052506583 leipengcheng lwx446408    20170602 end
+    write /sys/class/android_usb/android0/f_ffs/aliases adb
+    write /sys/class/android_usb/android0/functions adb
+    write /sys/class/android_usb/android0/enable 1
+    start adbd
+    start hdbd
+
+
+on property:sys.usb.test=adb,acm
+    stop adbd
+    setprop sys.usb.ffs.ready 0
+    setprop sys.usb.function adb,acm
+    write /config/usb_gadget/g1/UDC "none"
+    rm /config/usb_gadget/g1/configs/b.1/f1
+    rm /config/usb_gadget/g1/configs/b.1/f2
+    rm /config/usb_gadget/g1/configs/b.1/f3
+	write /sys/class/udc/musb-hdrc/device/cmode 1
+    start adbd
+    setprop sys.usb.config adb,acm
+
+on property:sys.usb.ffs.ready=1 && property:sys.usb.function=adb,acm && property:sys.usb.config=adb,acm
+    write /config/usb_gadget/g1/configs/b.1/strings/0x409/configuration "adb_acm"
+    write /config/usb_gadget/g1/idProduct 0x107F
+    write /config/usb_gadget/g1/idVendor 0x12D1
+    write /sys/devices/platform/mt_usb/saving 1
+    symlink /config/usb_gadget/g1/functions/mass_storage.usb0 /config/usb_gadget/g1/configs/b.1/f1
+    symlink /config/usb_gadget/g1/functions/ffs.adb /config/usb_gadget/g1/configs/b.1/f2
+    symlink /config/usb_gadget/g1/functions/acm.gs0 /config/usb_gadget/g1/configs/b.1/f3
+    write /config/usb_gadget/g1/UDC ${sys.usb.controller}
+    setprop sys.usb.state ${sys.usb.config}
+
+service fuelgauged /sbin/fuelgauged_static
+    seclabel u:r:fuelgauged_static:s0
+
+service vold_recovery /system/bin/vold \
+        --blkid_context=u:r:blkid:s0 --blkid_untrusted_context=u:r:blkid_untrusted:s0 \
+        --fsck_context=u:r:fsck:s0 --fsck_untrusted_context=u:r:fsck_untrusted:s0
+    class core
+    socket vold stream 0660 root mount
+    socket cryptd stream 0660 root mount
+    socket cryptd2 stream 0660 root mount
+    ioprio be 2
+    writepid /dev/cpuset/foreground/tasks
+
+on apply_file_decryption
+# decrypt file fs for /data/update
+    wait /dev/block/platform/bootdevice/by-name/userdata
+    mount f2fs /dev/block/platform/bootdevice/by-name/userdata /data nosuid nodev noatime discard,inline_data,inline_xattr
+    check_file_encrypt
+    setprop vold.crypto_unencrypt_updatedir /data/update
+    umount /data
+
+on property:vold.status=start
+    exec /system/bin/vdc --wait cryptfs enablefilecrypto
+    init_user0
+    unlock_user0_key
+    setprop vold.status end

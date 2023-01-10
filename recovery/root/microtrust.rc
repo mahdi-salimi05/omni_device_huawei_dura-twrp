@@ -1,0 +1,117 @@
+on init
+    #create mountpoint for /vendor/persist partition
+    mkdir /vendor/persist 0771 system system
+
+on post-fs
+    chown system system /vendor/persist
+    chmod 0771 /vendor/persist
+
+    # We restorecon /vendor/persist to set SEPolicy label.
+    restorecon /vendor/persist
+
+on property:vold.decrypt=trigger_restart_framework
+    setprop soter.teei.vold.decrypt OK
+
+on post-fs-data
+    write /proc/bootprof "start teei cfg (on post-fs-data)"
+    mkdir /data/thh
+    mkdir /data/thh/system
+    mkdir /data/thh/tee_00
+    mkdir /data/thh/tee_01
+    mkdir /data/thh/tee_02
+    mkdir /data/thh/tee_03
+    mkdir /data/thh/tee_04
+    mkdir /data/thh/tee_05
+    mkdir /data/thh/tee_06
+    mkdir /data/thh/tee_07
+    mkdir /data/thh/tee
+    mkdir /data/thh/tee/tas
+    mkdir /data/thh/tee_08
+    mkdir /data/thh/tee_09
+    mkdir /data/thh/tee_0A
+    mkdir /data/thh/tee_0B
+    mkdir /data/thh/tee_0C
+    mkdir /data/thh/tee_0D
+    mkdir /data/thh/tee_0E
+    mkdir /data/thh/tee_0F
+    chmod 0755 /data/thh
+    chown system system /data/thh
+    chmod 0755 /data/thh/system
+    chown system system /data/thh/system
+    chmod 0755 /data/thh/tee_00
+    chown system system /data/thh/tee_00
+    chmod 0755 /data/thh/tee_01
+    chown system system /data/thh/tee_01
+    chmod 0755 /data/thh/tee_02
+    chown system system /data/thh/tee_02
+    chmod 0755 /data/thh/tee_03
+    chown system system /data/thh/tee_03
+    chmod 0755 /data/thh/tee_04
+    chown system system /data/thh/tee_04
+    chmod 0755 /data/thh/tee_05
+    chown system system /data/thh/tee_05
+    chmod 0755 /data/thh/tee_06
+    chown system system /data/thh/tee_06
+    chmod 0755 /data/thh/tee_07
+    chown system system /data/thh/tee_07
+    chmod 0755 /data/thh/tee
+    chown system system /data/thh/tee
+    chmod 0755 /data/thh/tee/tas
+    chown system system /data/thh/tee/tas
+    chmod 0755 /data/thh/tee_08
+    chown system system /data/thh/tee_08
+    chmod 0755 /data/thh/tee_09
+    chown system system /data/thh/tee_09
+    chmod 0755 /data/thh/tee_0A
+    chown system system /data/thh/tee_0A
+    chmod 0755 /data/thh/tee_0B
+    chown system system /data/thh/tee_0B
+    chmod 0755 /data/thh/tee_0C
+    chown system system /data/thh/tee_0C
+    chmod 0755 /data/thh/tee_0D
+    chown system system /data/thh/tee_0D
+    chmod 0755 /data/thh/tee_0E
+    chown system system /data/thh/tee_0E
+    chmod 0755 /data/thh/tee_0F
+    chown system system /data/thh/tee_0F
+    restorecon_recursive /data/thh
+    setprop soter.encrypt.state OK
+    write /proc/bootprof "start teei cfg end (on post-fs-data)"
+
+on fs
+    chmod 0660 /dev/teei_client
+    chown system system /dev/teei_client
+    chmod 0660 /dev/teei_config
+    chown system system /dev/teei_config
+    chmod 0660 /dev/tz_vfs
+    chown system system /dev/tz_vfs
+    chmod 0660 /dev/teei_fp
+    chown system /dev/teei_fp
+    chmod 0660 /dev/ut_keymaster
+    chown system shell /dev/ut_keymaster
+#    chmod 0660 /dev/emmcrpmb0
+#    chown system system /dev/emmcrpmb0
+    chmod 0660 /dev/rpmb0
+    chown system system /dev/rpmb0
+    write /proc/bootprof "start teei_daemon (on fs)"
+    start teei_daemon
+    write /proc/bootprof "start teei_daemon end (on fs)"
+
+# teei service daemon
+service teei_daemon /vendor/bin/teei_daemon
+    class core
+    user system
+    group system
+    disabled
+   # oneshot
+
+on property:soter.teei.init=INIT_OK
+    start init_thh_service
+
+service init_thh_service /vendor/bin/init_thh startload
+    class core
+   user system
+   group system
+   disabled
+   oneshot
+
