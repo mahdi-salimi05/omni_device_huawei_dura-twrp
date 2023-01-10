@@ -1,6 +1,5 @@
-# Device Tree for Huawei Y5 2018 (dura)
+# omni_device_huawei_dura
 
-Copyright 2022, TeamWin Recovery Project
 
 The Huawei Y5 2018 lite (codenamed _"dura"_) is a budget smartphone from Huawei.
 It was released in June 2018.
