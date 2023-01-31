@@ -32,3 +32,9 @@ PRODUCT_NAME := omni_dura
 PRODUCT_BRAND := HUAWEI
 PRODUCT_MODEL := DRA-LX5
 PRODUCT_MANUFACTURER := huawei
+
+PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
+    ro.secure=0 \
+    ro.adb.secure=0 \
+    ro.debuggable=1 \
+    ro.allow.mock.location=0
