@@ -71,7 +71,7 @@ TARGET_KERNEL_HEADER_ARCH := arm
 TARGET_KERNEL_SOURCE := kernel/huawei/dura
 TARGET_KERNEL_CONFIG := dura_defconfig
 
-TARGET_SYSTEM_PROP := $(LOCAL_PATH)/system.prop
+#TARGET_SYSTEM_PROP := $(LOCAL_PATH)/system.prop
 
 # Platform
 TARGET_BOARD_PLATFORM := mt6739
