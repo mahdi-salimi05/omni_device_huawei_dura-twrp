@@ -38,7 +38,7 @@ Medium checks
 - [✅] backup/restore to/from external (USB-OTG) storage (not supported by the device)
 - [ ] backup/restore to/from adb (https://gerrit.omnirom.org/#/c/15943/)
 - [ ] decrypt /data
-- [ ] Correct date
+- [✅] Correct date
 
 Minor checks
 - [✅] MTP export
