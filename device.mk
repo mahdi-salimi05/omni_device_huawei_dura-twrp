@@ -18,10 +18,7 @@ LOCAL_PATH := device/huawei/dura
 
 # Usb
 PRODUCT_DEFAULT_PROPERTY_OVERRIDES += \
-    persist.sys.usb.config=manufacture,adb,mtp \
-    ro.sys.usb.storage.type=mtp,adb \
-    sys.usb.configfs=1 \
-    sys.usb.controller=musb-hdrc \
+    persist.sys.usb.config=adb \
     ro.secure=0 \
     ro.adb.secure=0 \
     ro.allow.mock.location=0 \
