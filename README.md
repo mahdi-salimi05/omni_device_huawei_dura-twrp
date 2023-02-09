@@ -36,8 +36,8 @@ Medium checks
 - [✅] F2FS/EXT4 Support, exFAT/NTFS where supported
 - [✅] all important partitions listed in mount/backup lists
 - [✅] backup/restore to/from external (USB-OTG) storage (not supported by the device)
-- [ ] backup/restore to/from adb (https://gerrit.omnirom.org/#/c/15943/)
-- [ ] decrypt /data
+- [✅] backup/restore to/from adb (https://gerrit.omnirom.org/#/c/15943/)
+- [✅] decrypt /data
 - [✅] Correct date
 
 Minor checks
