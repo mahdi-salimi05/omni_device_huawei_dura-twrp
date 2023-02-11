@@ -121,6 +121,10 @@ TW_NO_EXFAT := false
 TW_USE_TOOLBOX := false
 TW_USE_BUSYBOX := true
 
+# resetprop and magiskboot
+TW_INCLUDE_RESETPROP := true
+TW_INCLUDE_REPACKTOOLS := true
+
 # Paths
 TW_EXTERNAL_STORAGE_PATH := "/external_sd"
 TW_EXTERNAL_STORAGE_MOUNT_POINT := "external_sd"
