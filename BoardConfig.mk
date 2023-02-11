@@ -114,6 +114,8 @@ PRODUCT_COPY_FILES += device/huawei/dura/recovery.fstab:recovery/root/etc/twrp.f
 TARGET_RECOVERY_FSTAB := device/huawei/dura/recovery.fstab
 TW_BRIGHTNESS_PATH := /sys/class/leds/lcd-backlight/brightness
 TW_CUSTOM_BATTERY_PATH := /sys/class/power_supply/battery
+TW_CUSTOM_CPU_TEMP_PATH := /sys/devices/virtual/thermal/thermal_zone0/temp
+
 TW_INPUT_BLACKLIST := "hbtp_vm"
 TW_NO_EXFAT := false
 TW_USE_TOOLBOX := false
