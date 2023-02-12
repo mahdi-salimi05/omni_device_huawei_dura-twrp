@@ -1,4 +1,4 @@
-# omni_device_huawei_dura
+# omni_device_huawei_dura-twrp
 
 
 The Huawei Y5 2018 lite (codenamed _"dura"_) is a budget smartphone from Huawei.
